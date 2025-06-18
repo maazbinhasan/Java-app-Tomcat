@@ -1,45 +1,42 @@
-currentBuild.displayName = "online-shopping-#"+currentBuild.number
+pipeline {
+  agent any
 
-pipeline{
-    agent any
-/*    
-     environment{
-        PATH = "/opt/maven3/bin:$PATH"
-     }
- */   
-    tools {
-        maven 'm1'
+  tools {
+    maven 'Maven 3.8.7'
+    jdk 'Java 11'
+  }
+
+  environment {
+    JAVA_HOME = "${tool 'Java 11'}"
+    PATH = "${JAVA_HOME}/bin:${env.PATH}"
+  }
+
+  stages {
+    stage('Checkout & Build WAR') {
+      steps {
+        git url: 'https://github.com/maazbinhasan/Java-app-Tomcat.git', branch: 'main', credentialsId: 'github-pat'
+        sh 'mvn clean package'
+      }
     }
 
-    
-    stages{
-        stage("Git Checkout"){
-            steps{
-                git credentialsId: 'github', url: 'https://github.com/ramannkhanna2/tomcat-maven-jenkins-pipeline.git'
-            }
+    stage('Deploy to Tomcat') {
+      steps {
+        sshagent(['tomcat-deploy-key']) {
+          sh '''
+            scp target/*.war ubuntu@localhost:/opt/tomcat/webapps/
+            ssh ubuntu@localhost "/opt/tomcat/bin/shutdown.sh || true && sleep 5 && /opt/tomcat/bin/startup.sh"
+          '''
         }
-        stage("Maven Build"){
-            steps{
-                sh "mvn clean package"
-                sh "mv webapp/target/*.war webapp/target/myweb.war"
-            }
-        }
-        stage("deploy-dev"){
-            steps{
-                sshagent(['tomcat-new']) {
-                sh """
-                    
-                    sudo scp -o StrictHostKeyChecking=no webapp/target/myweb.war centos@54.224.40.223:/opt/apache-tomcat-9.0.80/webapps
-
-
-                    sudo ssh centos@54.224.40.223 /opt/apache-tomcat-9.0.80/bin/shutdown.sh
-                    
-                    sudo ssh centos@54.224.40.223 /opt/apache-tomcat-9.0.80/bin/startup.sh
-                
-                """
-            }
-            
-            }
-        }
+      }
     }
+  }
+
+  post {
+    success {
+      echo '✅ Build + Deploy successful!'
+    }
+    failure {
+      echo '❌ Something went wrong!'
+    }
+  }
 }
