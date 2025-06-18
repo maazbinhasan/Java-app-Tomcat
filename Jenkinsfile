@@ -14,7 +14,7 @@ pipeline {
   stages {
     stage('Checkout & Build WAR') {
       steps {
-        git url: 'https://github.com/maazbinhasan/Java-app-Tomcat.git', branch: 'main', credentialsId: 'github-pat'
+        git url: 'https://github.com/maazbinhasan/Java-app-Tomcat.git', branch: 'main'
         sh 'mvn clean package'
       }
     }
@@ -33,10 +33,10 @@ pipeline {
 
   post {
     success {
-      echo '✅ Build + Deploy successful!'
+      echo '✅ Build and Deployment Successful!'
     }
     failure {
-      echo '❌ Something went wrong!'
+      echo '❌ Build or Deployment Failed!'
     }
   }
 }
